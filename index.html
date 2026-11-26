@@ -1,0 +1,1207 @@
+<!DOCTYPE html>
+<!-- saved from url=(0077)https://songdrop.fra1.cdn.digitaloceanspaces.com/rtx/batch-image-cropper.html -->
+<html lang="en"><head><meta http-equiv="Content-Type" content="text/html; charset=UTF-8">
+    
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Batch Image Cropper - Memory Efficient</title>
+    <style>
+        * {
+            user-select: none;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: #1a1a1a;
+            color: #eee;
+            display: flex;
+            height: 100vh;
+            overflow: hidden;
+        }
+
+        .left-panel {
+            width: 320px;
+            background: #2d2d2d;
+            border-right: 2px solid #555;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-header {
+            padding: 15px;
+            background: #252525;
+            border-bottom: 1px solid #444;
+        }
+
+        .panel-header h2 {
+            margin: 0 0 10px 0;
+            font-size: 16px;
+        }
+
+        .load-btn {
+            background: #4CAF50;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+            width: 100%;
+            margin-bottom: 8px;
+        }
+
+        .process-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 12px;
+            width: 100%;
+        }
+
+        .image-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .image-item {
+            background: #3a3a3a;
+            margin-bottom: 8px;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+        }
+
+        .image-item:hover {
+            background: #4a4a4a;
+        }
+
+        .image-item.selected {
+            border-color: #2196F3;
+            background: #3a4a5a;
+        }
+
+        .image-item.has-crop {
+            border-left: 4px solid #4CAF50;
+        }
+
+        .image-preview {
+            display: flex;
+            gap: 8px;
+            align-items: center;
+        }
+
+        .image-thumb {
+            width: 40px;
+            height: 40px;
+            object-fit: cover;
+            border-radius: 4px;
+            background: #1a1a1a;
+            flex-shrink: 0;
+        }
+
+        .image-info {
+            flex: 1;
+            min-width: 0;
+        }
+
+        .image-name {
+            font-size: 10px;
+            font-weight: bold;
+            margin-bottom: 3px;
+            word-break: break-all;
+            white-space: normal;
+            line-height: 1.3;
+        }
+
+        .image-crop-info {
+            font-size: 9px;
+            color: #aaa;
+            font-family: monospace;
+            word-break: keep-all;
+            white-space: nowrap;
+            overflow-x: auto;
+            display: block;
+        }
+
+        .crop-status {
+            font-size: 16px;
+            margin-left: 5px;
+            flex-shrink: 0;
+        }
+
+        .crop-status.saved {
+            color: #4CAF50;
+        }
+
+        .bottom-actions {
+            padding: 10px;
+            background: #202020;
+            border-top: 1px solid #444;
+            margin-top: auto;
+        }
+
+        .bottom-actions button {
+            background: #FF9800;
+            color: white;
+            border: none;
+            padding: 8px 12px;
+            cursor: pointer;
+            border-radius: 5px;
+            font-size: 11px;
+            width: 100%;
+            margin-bottom: 6px;
+        }
+
+        .bottom-actions button:last-child {
+            margin-bottom: 0;
+        }
+
+        .bottom-actions button.danger {
+            background: #f44336;
+        }
+
+        .bottom-actions button.danger:hover {
+            background: #da190b;
+        }
+
+        .bottom-actions button:hover {
+            background: #e68900;
+        }
+
+        .middle-panel {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .crop-toolbar {
+            background: #252525;
+            padding: 10px;
+            border-bottom: 1px solid #444;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            align-items: center;
+        }
+
+        .crop-toolbar button {
+            background: #555;
+            color: white;
+            border: none;
+            padding: 6px 12px;
+            cursor: pointer;
+            border-radius: 4px;
+            font-size: 12px;
+        }
+
+        .crop-toolbar button:hover {
+            background: #666;
+        }
+
+        .crop-toolbar button.primary {
+            background: #4CAF50;
+        }
+
+        .crop-toolbar button.danger {
+            background: #f44336;
+        }
+
+        .rotation-group {
+            display: flex;
+            gap: 4px;
+            align-items: center;
+            background: #1a1a1a;
+            padding: 4px 8px;
+            border-radius: 4px;
+        }
+
+        .rotation-group input {
+            width: 45px;
+            background: #333;
+            border: 1px solid #555;
+            color: white;
+            padding: 4px;
+            border-radius: 3px;
+            text-align: center;
+            font-size: 11px;
+        }
+
+        .rotation-group label {
+            font-size: 11px;
+        }
+
+        .crop-coords {
+            background: #1a1a1a;
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-family: monospace;
+            font-size: 11px;
+            margin-left: auto;
+        }
+
+        .canvas-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            background: #0a0a0a;
+            overflow: auto;
+            position: relative;
+        }
+
+        canvas {
+            max-width: 100%;
+            max-height: 100%;
+            cursor: crosshair;
+            background: #1a1a1a;
+            box-shadow: 0 0 20px rgba(0, 0, 0, 0.5);
+        }
+
+        .right-panel {
+            width: 180px;
+            background: #252525;
+            border-left: 2px solid #444;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .presets-header {
+            padding: 10px;
+            background: #202020;
+            border-bottom: 1px solid #444;
+            font-size: 11px;
+            font-weight: bold;
+            text-align: center;
+        }
+
+        .presets-grid {
+            flex: 1;
+            overflow-y: auto;
+            padding: 8px;
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .preset-card {
+            background: #3a3a3a;
+            border-radius: 6px;
+            padding: 8px;
+            cursor: pointer;
+            transition: all 0.2s;
+            border: 2px solid transparent;
+            text-align: center;
+        }
+
+        .preset-card:hover {
+            background: #4a4a4a;
+        }
+
+        .preset-card.selected {
+            border-color: #4CAF50;
+            background: #2a5a3a;
+        }
+
+        .preset-thumb {
+            width: 100%;
+            height: 100px;
+            background: #f0f0f0;
+            border-radius: 4px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin-bottom: 6px;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .preset-thumb img {
+            width: 100%;
+            height: 100%;
+            object-fit: contain;
+        }
+
+        .preset-name {
+            font-size: 9px;
+            font-weight: bold;
+            margin-bottom: 4px;
+            word-break: break-word;
+            white-space: normal;
+            line-height: 1.2;
+        }
+
+        .preset-coords {
+            font-size: 8px;
+            color: #aaa;
+            font-family: monospace;
+            margin-bottom: 5px;
+        }
+
+        .preset-apply-btn {
+            background: #2196F3;
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            cursor: pointer;
+            width: 100%;
+        }
+
+        .preset-apply-btn:hover {
+            background: #0b7dda;
+        }
+
+        .preset-delete-btn {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 4px 6px;
+            border-radius: 3px;
+            font-size: 9px;
+            cursor: pointer;
+            width: 100%;
+            margin-top: 4px;
+        }
+
+        .preset-delete-btn:hover {
+            background: #da190b;
+        }
+
+        .notification {
+            position: fixed;
+            bottom: 20px;
+            left: 50%;
+            transform: translateX(-50%);
+            background: #333;
+            color: white;
+            padding: 10px 20px;
+            border-radius: 8px;
+            z-index: 1000;
+            font-size: 13px;
+            animation: fadeInUp 0.3s ease;
+            white-space: nowrap;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.3);
+        }
+
+        @keyframes fadeInUp {
+            from {
+                opacity: 0;
+                transform: translateX(-50%) translateY(20px);
+            }
+
+            to {
+                opacity: 1;
+                transform: translateX(-50%) translateY(0);
+            }
+        }
+
+        ::-webkit-scrollbar {
+            width: 6px;
+            height: 6px;
+        }
+
+        ::-webkit-scrollbar-track {
+            background: #1a1a1a;
+        }
+
+        ::-webkit-scrollbar-thumb {
+            background: #555;
+            border-radius: 3px;
+        }
+
+        .image-crop-info::-webkit-scrollbar {
+            height: 3px;
+        }
+    </style>
+<script src="./Batch Image Cropper - Memory Efficient_files/jszip.min.js.download"></script></head>
+
+<body>
+    <div class="left-panel">
+        <div class="panel-header">
+            <h2>📸 Images (<span id="imageCount">0</span>)</h2>
+            <button class="load-btn" id="loadFolderBtn">📁 Load Images</button>
+            <button class="process-btn" id="processAllBtn">⚡ Export All (ZIP)</button>
+        </div>
+        <div class="image-list" id="imageList">
+            <div style="text-align: center; padding: 40px; color: #666; font-size: 12px;">
+                Load images to start
+            </div>
+        </div>
+        <div class="bottom-actions">
+            <button id="applyAllBtn">✨ Apply Current Crop to ALL</button>
+            <button id="deleteAllCropsBtn" class="danger">🗑️ Delete ALL Crops</button>
+        </div>
+    </div>
+
+    <div class="middle-panel">
+        <div class="crop-toolbar">
+            <button id="saveCropBtn" class="primary">💾 Save Crop</button>
+            <button id="clearCropBtn" class="danger">🗑️ Clear</button>
+            <div class="rotation-group">
+                <label>🔄</label>
+                <input type="number" id="rotationAngle" step="0.5" value="0">
+                <button id="applyRotationBtn" style="padding: 4px 8px;">Apply</button>
+            </div>
+            <div class="crop-coords" id="cropCoords">
+                No crop
+            </div>
+        </div>
+
+        <div class="canvas-container">
+            <canvas id="cropCanvas"></canvas>
+        </div>
+    </div>
+
+    <div class="right-panel">
+        <div class="presets-header">🎨 VISUAL PRESETS</div>
+        <div class="presets-grid" id="presetsGrid">
+            <div style="color: #666; text-align: center; padding: 20px; font-size: 10px;">
+                No presets yet<br>Save a crop to create
+            </div>
+        </div>
+    </div>
+
+    <div id="notification"></div>
+
+    <input type="file" id="fileInput" multiple="" accept="image/*" style="display: none">
+
+    <script>
+        // Store ONLY file references, NOT image data
+        let images = [];
+        let currentImageIndex = null;
+        let currentCrop = null;
+        let currentRotation = 0;
+        let canvas, ctx;
+        let originalImage = null;
+        let presets = {};
+
+        let cachedRotatedImage = null;
+        let isDragging = false;
+        let isResizing = false;
+        let activeCorner = null;
+        let dragStartX, dragStartY;
+        let dragStartCrop = null;
+
+        const imageListDiv = document.getElementById('imageList');
+        const cropCanvas = document.getElementById('cropCanvas');
+        const saveCropBtn = document.getElementById('saveCropBtn');
+        const clearCropBtn = document.getElementById('clearCropBtn');
+        const loadFolderBtn = document.getElementById('loadFolderBtn');
+        const processAllBtn = document.getElementById('processAllBtn');
+        const applyAllBtn = document.getElementById('applyAllBtn');
+        const deleteAllCropsBtn = document.getElementById('deleteAllCropsBtn');
+        const fileInput = document.getElementById('fileInput');
+        const cropCoordsDiv = document.getElementById('cropCoords');
+        const presetsGrid = document.getElementById('presetsGrid');
+        const rotationAngleInput = document.getElementById('rotationAngle');
+        const applyRotationBtn = document.getElementById('applyRotationBtn');
+
+        canvas = cropCanvas;
+        ctx = canvas.getContext('2d');
+
+        // Create thumbnail for display (reduced size)
+        async function createThumbnail(file, maxSize = 60) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => {
+                        const canvas = document.createElement('canvas');
+                        const ratio = Math.min(maxSize / img.width, maxSize / img.height);
+                        canvas.width = img.width * ratio;
+                        canvas.height = img.height * ratio;
+                        const ctx = canvas.getContext('2d');
+                        ctx.drawImage(img, 0, 0, canvas.width, canvas.height);
+                        resolve(canvas.toDataURL('image/jpeg', 0.5)); // Compressed thumbnail
+                    };
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // Load full image only when selected
+        async function loadFullImage(file) {
+            return new Promise((resolve, reject) => {
+                const reader = new FileReader();
+                reader.onload = (e) => {
+                    const img = new Image();
+                    img.onload = () => resolve(img);
+                    img.onerror = reject;
+                    img.src = e.target.result;
+                };
+                reader.onerror = reject;
+                reader.readAsDataURL(file);
+            });
+        }
+
+        // AUTO-SAVE FUNCTIONS
+        function autoSaveAllCrops() {
+            const cropsData = {};
+            for (let i = 0; i < images.length; i++) {
+                if (images[i].crop) {
+                    cropsData[images[i].filename] = {
+                        x: images[i].crop.x,
+                        y: images[i].crop.y,
+                        w: images[i].crop.w,
+                        h: images[i].crop.h,
+                        rotation: images[i].rotation || 0
+                    };
+                }
+            }
+            localStorage.setItem('autoSavedCrops', JSON.stringify(cropsData));
+        }
+
+        function autoLoadCrops() {
+            const saved = localStorage.getItem('autoSavedCrops');
+            if (saved) {
+                try {
+                    const cropsData = JSON.parse(saved);
+                    for (let i = 0; i < images.length; i++) {
+                        const filename = images[i].filename;
+                        if (cropsData[filename]) {
+                            images[i].crop = {
+                                x: cropsData[filename].x,
+                                y: cropsData[filename].y,
+                                w: cropsData[filename].w,
+                                h: cropsData[filename].h
+                            };
+                            images[i].rotation = cropsData[filename].rotation || 0;
+                        }
+                    }
+                    renderImageList();
+                    return true;
+                } catch (e) {
+                    console.error('Failed to load auto-save', e);
+                }
+            }
+            return false;
+        }
+
+        function loadPresetsFromStorage() {
+            const saved = localStorage.getItem('cropPresets');
+            if (saved) {
+                try {
+                    presets = JSON.parse(saved);
+                    renderPresets();
+                } catch (e) {
+                    console.error('Failed to load presets', e);
+                }
+            }
+        }
+
+        function savePresetsToStorage() {
+            localStorage.setItem('cropPresets', JSON.stringify(presets));
+        }
+
+        loadFolderBtn.addEventListener('click', () => {
+            fileInput.click();
+        });
+
+        fileInput.addEventListener('change', async (e) => {
+            const files = Array.from(e.target.files);
+            if (files.length === 0) return;
+
+            showNotification(`📂 Loading ${files.length} images...`);
+
+            images = [];
+            for (let i = 0; i < files.length; i++) {
+                const file = files[i];
+                const thumbnail = await createThumbnail(file);
+                images.push({
+                    file: file,
+                    thumbnail: thumbnail,
+                    crop: null,
+                    rotation: 0,
+                    filename: file.name
+                });
+
+                // Update progress
+                if (i % 10 === 0) {
+                    showNotification(`📂 Loading ${i}/${files.length}...`);
+                }
+            }
+
+            renderImageList();
+
+            const hadSavedCrops = autoLoadCrops();
+
+            showNotification(`✅ Loaded ${files.length} images (${Math.round(performance.memory?.usedJSHeapSize / 1024 / 1024 || 0)}MB used)`);
+
+            if (images.length > 0) {
+                selectImage(0);
+            }
+        });
+
+        function renderImageList() {
+            if (images.length === 0) {
+                imageListDiv.innerHTML = '<div style="text-align: center; padding: 40px; color: #666; font-size: 12px;">Load images to start</div>';
+                document.getElementById('imageCount').textContent = '0';
+                return;
+            }
+
+            imageListDiv.innerHTML = images.map((img, idx) => `
+                <div class="image-item ${currentImageIndex === idx ? 'selected' : ''} ${img.crop ? 'has-crop' : ''}" 
+                     onclick="selectImage(${idx})">
+                    <div class="image-preview">
+                        <img class="image-thumb" src="${img.thumbnail}" alt="">
+                        <div class="image-info">
+                            <div class="image-name" title="${escapeHtml(img.filename)}">${escapeHtml(img.filename)}</div>
+                            <div class="image-crop-info">
+                                ${img.crop ? `✂️ x:${Math.round(img.crop.x)} y:${Math.round(img.crop.y)} w:${Math.round(img.crop.w)} h:${Math.round(img.crop.h)}` : '⚠️ No crop'}
+                                ${img.rotation !== 0 ? ` 🔄 ${img.rotation}°` : ''}
+                            </div>
+                        </div>
+                        <div class="crop-status ${img.crop ? 'saved' : ''}">
+                            ${img.crop ? '✓' : '○'}
+                        </div>
+                    </div>
+                </div>
+            `).join('');
+
+            document.getElementById('imageCount').textContent = images.length;
+        }
+
+        window.selectImage = async function (index) {
+            currentImageIndex = index;
+            const img = images[index];
+            currentRotation = img.rotation || 0;
+            rotationAngleInput.value = currentRotation;
+
+            showNotification(`📖 Loading ${img.filename}...`);
+
+            // Load full image only when selected
+            const fullImg = await loadFullImage(img.file);
+            originalImage = fullImg;
+            cachedRotatedImage = null;
+            applyRotationAndDraw();
+
+            if (img.crop) {
+                currentCrop = { ...img.crop };
+                drawCropOverlay();
+                updateCropCoords();
+            } else {
+                currentCrop = null;
+                updateCropCoords();
+            }
+
+            renderImageList();
+            showNotification(`✅ Loaded ${img.filename}`);
+        };
+
+        function applyRotationAndDraw() {
+            if (!originalImage) return;
+
+            const angle = currentRotation * Math.PI / 180;
+            const cos = Math.abs(Math.cos(angle));
+            const sin = Math.abs(Math.sin(angle));
+            const newWidth = originalImage.width * cos + originalImage.height * sin;
+            const newHeight = originalImage.width * sin + originalImage.height * cos;
+
+            canvas.width = newWidth;
+            canvas.height = newHeight;
+
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.save();
+            ctx.translate(canvas.width / 2, canvas.height / 2);
+            ctx.rotate(angle);
+            ctx.drawImage(originalImage, -originalImage.width / 2, -originalImage.height / 2);
+            ctx.restore();
+
+            cachedRotatedImage = ctx.getImageData(0, 0, canvas.width, canvas.height);
+        }
+
+        applyRotationBtn.addEventListener('click', () => {
+            if (currentImageIndex === null) return;
+            currentRotation = parseFloat(rotationAngleInput.value);
+            images[currentImageIndex].rotation = currentRotation;
+            cachedRotatedImage = null;
+            applyRotationAndDraw();
+            if (currentCrop) drawCropOverlay();
+            autoSaveAllCrops();
+            showNotification(`Rotated to ${currentRotation}°`);
+        });
+
+        function drawCropOverlay() {
+            if (!currentCrop) {
+                if (cachedRotatedImage) {
+                    ctx.putImageData(cachedRotatedImage, 0, 0);
+                } else {
+                    applyRotationAndDraw();
+                }
+                return;
+            }
+
+            if (cachedRotatedImage) {
+                ctx.putImageData(cachedRotatedImage, 0, 0);
+            } else {
+                applyRotationAndDraw();
+            }
+
+            ctx.fillStyle = 'rgba(0,0,0,0.65)';
+            ctx.fillRect(0, 0, canvas.width, currentCrop.y);
+            ctx.fillRect(0, currentCrop.y + currentCrop.h, canvas.width, canvas.height - (currentCrop.y + currentCrop.h));
+            ctx.fillRect(0, currentCrop.y, currentCrop.x, currentCrop.h);
+            ctx.fillRect(currentCrop.x + currentCrop.w, currentCrop.y, canvas.width - (currentCrop.x + currentCrop.w), currentCrop.h);
+
+            ctx.strokeStyle = '#FFE400';
+            ctx.lineWidth = 3;
+            ctx.strokeRect(currentCrop.x, currentCrop.y, currentCrop.w, currentCrop.h);
+
+            ctx.fillStyle = '#FFE400';
+            const handleSize = 10;
+            const corners = [
+                { x: currentCrop.x, y: currentCrop.y },
+                { x: currentCrop.x + currentCrop.w, y: currentCrop.y },
+                { x: currentCrop.x, y: currentCrop.y + currentCrop.h },
+                { x: currentCrop.x + currentCrop.w, y: currentCrop.y + currentCrop.h }
+            ];
+            corners.forEach(corner => {
+                ctx.fillRect(corner.x - handleSize / 2, corner.y - handleSize / 2, handleSize, handleSize);
+                ctx.fillStyle = '#000';
+                ctx.fillRect(corner.x - handleSize / 2 + 2, corner.y - handleSize / 2 + 2, handleSize - 4, handleSize - 4);
+                ctx.fillStyle = '#FFE400';
+            });
+        }
+
+        function getCornerAt(x, y) {
+            if (!currentCrop) return null;
+            const handleSize = 10;
+            const corners = [
+                { name: 'tl', x: currentCrop.x, y: currentCrop.y },
+                { name: 'tr', x: currentCrop.x + currentCrop.w, y: currentCrop.y },
+                { name: 'bl', x: currentCrop.x, y: currentCrop.y + currentCrop.h },
+                { name: 'br', x: currentCrop.x + currentCrop.w, y: currentCrop.y + currentCrop.h }
+            ];
+            for (const corner of corners) {
+                if (Math.abs(x - corner.x) < handleSize && Math.abs(y - corner.y) < handleSize) {
+                    return corner.name;
+                }
+            }
+            return null;
+        }
+
+        function isInsideCrop(x, y) {
+            if (!currentCrop) return false;
+            return x >= currentCrop.x && x <= currentCrop.x + currentCrop.w &&
+                y >= currentCrop.y && y <= currentCrop.y + currentCrop.h;
+        }
+
+        let pendingRedraw = false;
+        function throttledRedraw() {
+            if (pendingRedraw) return;
+            pendingRedraw = true;
+            requestAnimationFrame(() => {
+                drawCropOverlay();
+                pendingRedraw = false;
+            });
+        }
+
+        canvas.addEventListener('mousedown', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+
+            const corner = getCornerAt(mouseX, mouseY);
+            if (corner) {
+                isResizing = true;
+                activeCorner = corner;
+                dragStartX = mouseX;
+                dragStartY = mouseY;
+                dragStartCrop = { ...currentCrop };
+                return;
+            }
+
+            if (currentCrop && isInsideCrop(mouseX, mouseY)) {
+                isDragging = true;
+                dragStartX = mouseX;
+                dragStartY = mouseY;
+                dragStartCrop = { ...currentCrop };
+                return;
+            }
+
+            isDragging = false;
+            isResizing = false;
+            cropStartX = mouseX;
+            cropStartY = mouseY;
+            isCropping = true;
+        });
+
+        canvas.addEventListener('mousemove', (e) => {
+            const rect = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / rect.width;
+            const scaleY = canvas.height / rect.height;
+            const mouseX = (e.clientX - rect.left) * scaleX;
+            const mouseY = (e.clientY - rect.top) * scaleY;
+
+            if (currentCrop) {
+                const corner = getCornerAt(mouseX, mouseY);
+                if (corner) {
+                    canvas.style.cursor = 'nw-resize';
+                } else if (isInsideCrop(mouseX, mouseY)) {
+                    canvas.style.cursor = 'move';
+                } else {
+                    canvas.style.cursor = 'crosshair';
+                }
+            } else {
+                canvas.style.cursor = 'crosshair';
+            }
+
+            if (isDragging && dragStartCrop) {
+                const dx = mouseX - dragStartX;
+                const dy = mouseY - dragStartY;
+                let newX = Math.max(0, Math.min(dragStartCrop.x + dx, canvas.width - dragStartCrop.w));
+                let newY = Math.max(0, Math.min(dragStartCrop.y + dy, canvas.height - dragStartCrop.h));
+                currentCrop = { ...dragStartCrop, x: newX, y: newY };
+                throttledRedraw();
+                updateCropCoords();
+                return;
+            }
+
+            if (isResizing && dragStartCrop) {
+                let newX = dragStartCrop.x;
+                let newY = dragStartCrop.y;
+                let newW = dragStartCrop.w;
+                let newH = dragStartCrop.h;
+                const dx = mouseX - dragStartX;
+                const dy = mouseY - dragStartY;
+
+                switch (activeCorner) {
+                    case 'tl':
+                        newX = Math.max(0, Math.min(dragStartCrop.x + dx, dragStartCrop.x + dragStartCrop.w - 10));
+                        newW = dragStartCrop.w - (newX - dragStartCrop.x);
+                        newY = Math.max(0, Math.min(dragStartCrop.y + dy, dragStartCrop.y + dragStartCrop.h - 10));
+                        newH = dragStartCrop.h - (newY - dragStartCrop.y);
+                        break;
+                    case 'tr':
+                        newW = Math.max(10, dragStartCrop.w + dx);
+                        newY = Math.max(0, Math.min(dragStartCrop.y + dy, dragStartCrop.y + dragStartCrop.h - 10));
+                        newH = dragStartCrop.h - (newY - dragStartCrop.y);
+                        break;
+                    case 'bl':
+                        newX = Math.max(0, Math.min(dragStartCrop.x + dx, dragStartCrop.x + dragStartCrop.w - 10));
+                        newW = dragStartCrop.w - (newX - dragStartCrop.x);
+                        newH = Math.max(10, dragStartCrop.h + dy);
+                        break;
+                    case 'br':
+                        newW = Math.max(10, dragStartCrop.w + dx);
+                        newH = Math.max(10, dragStartCrop.h + dy);
+                        break;
+                }
+                currentCrop = { x: newX, y: newY, w: newW, h: newH };
+                throttledRedraw();
+                updateCropCoords();
+                return;
+            }
+
+            if (isCropping) {
+                currentCrop = {
+                    x: Math.min(cropStartX, mouseX),
+                    y: Math.min(cropStartY, mouseY),
+                    w: Math.abs(mouseX - cropStartX),
+                    h: Math.abs(mouseY - cropStartY)
+                };
+                throttledRedraw();
+                updateCropCoords();
+            }
+        });
+
+        canvas.addEventListener('mouseup', () => {
+            isDragging = false;
+            isResizing = false;
+            activeCorner = null;
+            if (isCropping && currentCrop && (currentCrop.w < 5 || currentCrop.h < 5)) {
+                currentCrop = null;
+                drawCropOverlay();
+            }
+            isCropping = false;
+
+            if (currentImageIndex !== null && currentCrop) {
+                images[currentImageIndex].crop = { ...currentCrop };
+                autoSaveAllCrops();
+                renderImageList();
+            }
+        });
+
+        let isCropping = false;
+        let cropStartX, cropStartY;
+
+        function updateCropCoords() {
+            if (currentCrop) {
+                cropCoordsDiv.innerHTML = `✂️ x:${Math.round(currentCrop.x)} y:${Math.round(currentCrop.y)} w:${Math.round(currentCrop.w)} h:${Math.round(currentCrop.h)}`;
+            } else {
+                cropCoordsDiv.innerHTML = 'No crop';
+            }
+        }
+
+        saveCropBtn.addEventListener('click', () => {
+            if (currentImageIndex === null) {
+                showNotification('No image selected', 'error');
+                return;
+            }
+
+            if (!currentCrop) {
+                showNotification('Draw a crop area first!', 'error');
+                return;
+            }
+
+            images[currentImageIndex].crop = { ...currentCrop };
+            images[currentImageIndex].rotation = currentRotation;
+
+            autoSaveAllCrops();
+
+            const defaultName = images[currentImageIndex].filename.replace(/\.[^/.]+$/, '');
+            const presetName = prompt('Preset name:', defaultName);
+
+            if (presetName) {
+                const thumbCanvas = document.createElement('canvas');
+                thumbCanvas.width = 100;
+                thumbCanvas.height = 100;
+                const thumbCtx = thumbCanvas.getContext('2d');
+                thumbCtx.fillStyle = '#f0f0f0';
+                thumbCtx.fillRect(0, 0, 100, 100);
+                thumbCtx.strokeStyle = '#000';
+                thumbCtx.lineWidth = 2;
+                thumbCtx.strokeRect(
+                    (currentCrop.x / canvas.width) * 100,
+                    (currentCrop.y / canvas.height) * 100,
+                    (currentCrop.w / canvas.width) * 100,
+                    (currentCrop.h / canvas.height) * 100
+                );
+
+                presets[presetName] = {
+                    x: currentCrop.x,
+                    y: currentCrop.y,
+                    w: currentCrop.w,
+                    h: currentCrop.h,
+                    thumbnail: thumbCanvas.toDataURL()
+                };
+                savePresetsToStorage();
+                renderPresets();
+                showNotification(`✅ Preset "${presetName}" saved!`);
+            }
+
+            renderImageList();
+            showNotification(`✅ Crop saved & auto-saved`);
+        });
+
+        applyAllBtn.addEventListener('click', () => {
+            if (!currentCrop) {
+                showNotification('No crop to apply! Draw a crop area first.', 'error');
+                return;
+            }
+
+            const count = images.length;
+            for (let i = 0; i < images.length; i++) {
+                images[i].crop = { ...currentCrop };
+            }
+            autoSaveAllCrops();
+            renderImageList();
+            showNotification(`✨ Applied current crop to ALL ${count} images & auto-saved!`);
+        });
+
+        deleteAllCropsBtn.addEventListener('click', () => {
+            if (images.length === 0) {
+                showNotification('No images loaded', 'error');
+                return;
+            }
+
+            if (confirm(`⚠️ Delete ALL crops from ${images.length} images? This cannot be undone.`)) {
+                for (let i = 0; i < images.length; i++) {
+                    images[i].crop = null;
+                }
+                currentCrop = null;
+                if (originalImage) {
+                    applyRotationAndDraw();
+                }
+                updateCropCoords();
+                renderImageList();
+                autoSaveAllCrops();
+                showNotification(`🗑️ Deleted ALL crops from ${images.length} images`);
+            }
+        });
+
+        clearCropBtn.addEventListener('click', () => {
+            if (currentImageIndex === null) return;
+
+            images[currentImageIndex].crop = null;
+            currentCrop = null;
+            applyRotationAndDraw();
+            updateCropCoords();
+            renderImageList();
+            autoSaveAllCrops();
+            showNotification(`🗑️ Crop cleared`);
+        });
+
+        function renderPresets() {
+            const presetNames = Object.keys(presets);
+            if (presetNames.length === 0) {
+                presetsGrid.innerHTML = '<div style="color: #666; text-align: center; padding: 20px; font-size: 10px;">No presets yet<br>Save a crop to create</div>';
+                return;
+            }
+
+            presetsGrid.innerHTML = presetNames.map(name => {
+                const preset = presets[name];
+                return `
+                    <div class="preset-card">
+                        <div class="preset-thumb">
+                            <img src="${preset.thumbnail}">
+                        </div>
+                        <div class="preset-name" title="${escapeHtml(name)}">${escapeHtml(name)}</div>
+                        <div class="preset-coords">${Math.round(preset.x)}x${Math.round(preset.y)}<br>${Math.round(preset.w)}x${Math.round(preset.h)}</div>
+                        <button class="preset-apply-btn" onclick="applyPreset('${escapeHtml(name)}')">📌 Apply</button>
+                        <button class="preset-delete-btn" onclick="deletePreset('${escapeHtml(name)}')">🗑️ Del</button>
+                    </div>
+                `;
+            }).join('');
+        }
+
+        window.applyPreset = function (presetName) {
+            if (currentImageIndex === null) {
+                showNotification('Select an image first', 'error');
+                return;
+            }
+
+            const preset = presets[presetName];
+            if (preset) {
+                currentCrop = { x: preset.x, y: preset.y, w: preset.w, h: preset.h };
+                drawCropOverlay();
+                updateCropCoords();
+
+                images[currentImageIndex].crop = { ...currentCrop };
+                autoSaveAllCrops();
+                renderImageList();
+
+                showNotification(`✨ Applied "${presetName}" & auto-saved`);
+            }
+        };
+
+        window.deletePreset = function (presetName) {
+            delete presets[presetName];
+            savePresetsToStorage();
+            renderPresets();
+            showNotification(`🗑️ Deleted "${presetName}"`);
+        };
+
+        processAllBtn.addEventListener('click', async () => {
+            const imagesWithCrop = images.filter(img => img.crop);
+            if (imagesWithCrop.length === 0) {
+                showNotification('No crops saved!', 'error');
+                return;
+            }
+
+            showNotification(`🔄 Processing ${imagesWithCrop.length} images...`);
+
+            const JSZip = window.JSZip;
+            if (!JSZip) {
+                await loadJSZip();
+            }
+
+            const zip = new JSZip();
+
+            for (let i = 0; i < imagesWithCrop.length; i++) {
+                const img = imagesWithCrop[i];
+                showNotification(`📦 Processing ${i + 1}/${imagesWithCrop.length}...`);
+                const fullImage = await loadFullImage(img.file);
+                const croppedBlob = await cropImageWithRotation(fullImage, img.crop, img.rotation || 0);
+                const filename = img.filename.replace(/\.[^/.]+$/, '') + '.png';
+                zip.file(filename, croppedBlob);
+            }
+
+            const content = await zip.generateAsync({ type: 'blob' });
+            const url = URL.createObjectURL(content);
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = 'cropped_images.zip';
+            a.click();
+            URL.revokeObjectURL(url);
+
+            showNotification(`✅ Exported ${imagesWithCrop.length} images`);
+        });
+
+        function cropImageWithRotation(img, crop, rotation) {
+            return new Promise((resolve) => {
+                const angle = rotation * Math.PI / 180;
+                const cos = Math.abs(Math.cos(angle));
+                const sin = Math.abs(Math.sin(angle));
+                const rotatedW = img.width * cos + img.height * sin;
+                const rotatedH = img.width * sin + img.height * cos;
+
+                const rotatedCanvas = document.createElement('canvas');
+                rotatedCanvas.width = rotatedW;
+                rotatedCanvas.height = rotatedH;
+                const rotatedCtx = rotatedCanvas.getContext('2d');
+                rotatedCtx.translate(rotatedW / 2, rotatedH / 2);
+                rotatedCtx.rotate(angle);
+                rotatedCtx.drawImage(img, -img.width / 2, -img.height / 2);
+
+                const cropCanvas = document.createElement('canvas');
+                cropCanvas.width = crop.w;
+                cropCanvas.height = crop.h;
+                const cropCtx = cropCanvas.getContext('2d');
+                cropCtx.drawImage(rotatedCanvas, crop.x, crop.y, crop.w, crop.h, 0, 0, crop.w, crop.h);
+                cropCanvas.toBlob(resolve, 'image/png');
+            });
+        }
+
+        function loadJSZip() {
+            return new Promise((resolve, reject) => {
+                const script = document.createElement('script');
+                script.src = 'https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js';
+                script.onload = resolve;
+                script.onerror = reject;
+                document.head.appendChild(script);
+            });
+        }
+
+        function escapeHtml(str) {
+            return str.replace(/[&<>]/g, function (m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            });
+        }
+
+        function showNotification(msg, type = 'info') {
+            const oldNotif = document.getElementById('notification');
+            if (oldNotif) {
+                oldNotif.remove();
+            }
+
+            const notif = document.createElement('div');
+            notif.id = 'notification';
+            notif.className = 'notification';
+            notif.textContent = msg;
+            notif.style.background = type === 'error' ? '#f44336' : '#333';
+            document.body.appendChild(notif);
+
+            setTimeout(() => {
+                if (notif) notif.remove();
+            }, 2500);
+        }
+
+        loadPresetsFromStorage();
+        loadJSZip();
+    </script>
+
+
+
+</body></html>
